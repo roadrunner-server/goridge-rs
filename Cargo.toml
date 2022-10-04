@@ -1,0 +1,12 @@
+[package]
+name = "goridge-rs"
+version = "0.1.0"
+authors = ["Valery Piashchynski <piashchynski.valery@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait = "0.1"
+tokio = { version = "1", features = ["full"] }
+bytes = "1"
