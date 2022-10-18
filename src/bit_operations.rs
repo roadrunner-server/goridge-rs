@@ -47,7 +47,7 @@ pub fn put_u64_be(b: &mut [u8], value: usize) {
 
 #[cfg(test)]
 mod tests {
-    use crate::bit_operations::{read_le};
+    use crate::bit_operations::read_le;
 
     #[test]
     fn test() {

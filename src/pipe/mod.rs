@@ -12,7 +12,7 @@ pub struct Pipes {
 
 impl Relay<Frame> for Pipes {
     fn send(&mut self, frame: &mut Frame) -> Result<(), Error> {
-        let stdin= self.stdin.as_mut();
+        let stdin = self.stdin.as_mut();
 
         match stdin {
             None => Err(Error::PipeError {
@@ -102,12 +102,9 @@ impl Pipes {
 mod tests {
     use crate::pipe::Pipes;
     use crate::relay::Relay;
-    use std::process::Stdio;
 
     #[test]
     fn test1() {
-        let cmd: &str = "ls";
-
         let mut p = Pipes::new(&["php", "/home/valery/projects/opensource/github/rustatian/roadrunner-rs/crates/goridge/tests/worker.php"]).unwrap();
         let data = p.receive_stderr().unwrap();
         println!("{:?}", std::str::from_utf8(&data));

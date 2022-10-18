@@ -1,22 +1,22 @@
 mod frame_flags;
 
 use crate::errors::Error;
-use std::convert::TryInto;
 use std::ops::BitAnd;
 
 const WORD: u8 = 4;
 const FRAME_OPTIONS_MAX_SIZE: u8 = 40;
 
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub struct Frame {
-    header: [u8; 12],
+    // 52 is maximum header len [0-51] or [0-52)
+    header: [u8; 52],
     payload: Vec<u8>,
 }
 
 impl Default for Frame {
     fn default() -> Self {
         let mut f = Frame {
-            header: [0; 12],
+            header: [0_u8; 52],
             payload: vec![],
         };
         f.default_hl();
@@ -36,47 +36,39 @@ impl Frame {
     }
 
     #[inline(always)]
-    pub(crate) fn header(&mut self) -> [u8;12] {
+    pub fn header(&mut self) -> [u8; 52] {
         self.header
-    }
-
-    #[inline]
-    pub fn read_header(&self, data: &[u8]) -> Result<Self, Error> {
-        if data.len() < 12 {
-            return Err(Error::HeaderLenError {
-                cause: "len is less than 12".to_string(),
-            });
-        }
-        Ok(Frame {
-            header: data[..12].try_into().expect("slice with incorrect length"),
-            payload: vec![],
-        })
     }
 
     pub fn read_frame(&self, data: &[u8]) -> Self {
         // get options bits
         let opt = data[0].bitand(0x0F);
 
-        if opt > 3 {
-            return Self {
-                header: data[..(opt * WORD) as usize]
-                    .try_into()
-                    .expect("array with incorrect length"),
-                payload: vec![],
-            };
+        match opt {
+            // 3 is minimum
+            1..=3 => {
+                let mut hdr = [0_u8; 52];
+                hdr.clone_from_slice(&data[..52]);
+
+                let mut frame = Frame {
+                    header: hdr,
+                    payload: data[52..].to_vec(),
+                };
+
+                frame.header[10] = 0;
+                frame.header[11] = 0;
+
+                frame
+            }
+            _ => {
+                let mut hdr = [0_u8; 52];
+                hdr.clone_from_slice(&data[..(opt * WORD) as usize]);
+                return Self {
+                    header: hdr,
+                    payload: data[52..].to_vec(),
+                };
+            }
         }
-
-        let mut frame = Frame {
-            header: data[..12_usize]
-                .try_into()
-                .expect("array with incorrect length"),
-            payload: data[12_usize..].to_vec(),
-        };
-
-        frame.header[10] = 0;
-        frame.header[11] = 0;
-
-        frame
     }
 
     #[inline]
@@ -119,6 +111,16 @@ impl Frame {
         }
     }
 
+    pub fn write_payload(&mut self, payload: Vec<u8>) {
+        let pl = payload.len();
+        self.header[2] = pl as u8;
+        self.header[3] = (pl >> 8) as u8;
+        self.header[4] = (pl >> 16) as u8;
+        self.header[5] = (pl >> 24) as u8;
+
+        self.payload.extend_from_slice(&payload);
+    }
+
     pub fn write_options(&mut self, options: &[u32]) {
         if options.len() == 0 {
             panic!("no options provided");
@@ -142,10 +144,35 @@ impl Frame {
         }
     }
 
+    pub fn write_crc(&mut self) {
+        let res = crc32fast::hash(&self.header[..6]);
+        self.header[6] = res as u8;
+        self.header[7] = (res >> 8) as u8;
+        self.header[8] = (res >> 16) as u8;
+        self.header[9] = (res >> 24) as u8;
+    }
+
+    pub fn payload(&self) -> &Vec<u8> {
+        return &self.payload;
+    }
+
+    pub fn verify_crc(&self) -> Result<(), Error> {
+        let crc = crc32fast::hash(&self.header[..6]);
+        if crc
+            == ((self.header[6] as u32) | ((self.header[7]) as u32) << 8)
+                | ((self.header[8] as u32) << 16)
+                | ((self.header[9] as u32) << 24)
+        {
+            return Ok(());
+        }
+
+        Err(Error::CRCVerificationError)
+    }
+
     pub fn bytes(&mut self) -> Vec<u8> {
         let mut v = Vec::with_capacity(self.header.len() + self.payload.len());
-        v.append(&mut self.header.to_vec());
-        v.append(&mut self.payload);
+        v.extend_from_slice(&self.header);
+        v.extend_from_slice(&self.payload);
         v
     }
 }
@@ -161,27 +188,77 @@ impl From<&mut Frame> for Vec<u8> {
 
 impl From<Vec<u8>> for Frame {
     fn from(data: Vec<u8>) -> Self {
-        let mut fr = Frame::default();
-        fr.read_header(&data).expect("header read failed");
+        Frame::default().read_frame(&data)
+    }
+}
 
-        // we have an options
-        if fr.read_hl() > 3 {
-
-        }
-
-        fr
+impl From<Frame> for Vec<u8> {
+    fn from(f: Frame) -> Self {
+        let mut vec = vec![];
+        vec.extend_from_slice(&f.header);
+        vec.extend_from_slice(&f.payload);
+        vec
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::frame::frame_flags::Flag;
     use crate::frame::Frame;
 
     #[test]
     fn test1() {
+        let test_payload = "alsdjf;lskjdgljasg;lkjsalfkjaskldjflkasjdf;lkasjfdalksdjflkajsdf;lfasdgnslsnblna;sldjjfawlkejr;lwjenlksndlfjawl;ejr;lwjelkrjaldfjl;sdjf";
+
         let mut ff = Frame::default();
-        ff.write_hl(3);
-        println!("{:?}", ff);
-        ff.read_header(&[0; 11]).expect("error");
+        ff.write_version(1);
+        ff.write_flags(&[Flag::Control, Flag::CodecRaw]);
+        ff.write_payload(test_payload.into());
+        ff.write_crc();
+
+        let bytes = ff.bytes();
+
+        let res = Frame::default().read_frame(&bytes);
+        if let Err(err) = res.verify_crc() {
+            panic!("should not be error: {}", err)
+        }
+        assert_eq!(ff.version(), res.version());
+        assert_eq!(ff.payload(), res.payload());
+    }
+
+    #[test]
+    fn test2() {
+        let test_payload = "";
+
+        let mut ff = Frame::default();
+        ff.write_version(1);
+        ff.write_flags(&[Flag::Control, Flag::CodecRaw]);
+        ff.write_payload(test_payload.into());
+        ff.write_crc();
+
+        let bytes = ff.bytes();
+
+        let res = Frame::default().read_frame(&bytes);
+        if let Err(err) = res.verify_crc() {
+            panic!("should not be error: {}", err)
+        }
+        assert_eq!(ff.version(), res.version());
+        assert_eq!(ff.payload(), res.payload());
+    }
+
+    #[test]
+    fn test3() {
+        let mut ff = Frame::default();
+        ff.write_version(1);
+        ff.write_flags(&[Flag::Control, Flag::CodecRaw]);
+
+        let bytes = ff.bytes();
+
+        let res = Frame::default().read_frame(&bytes);
+        if let Ok(()) = res.verify_crc() {
+            panic!("should be error")
+        }
+        assert_eq!(ff.version(), res.version());
+        assert_eq!(ff.payload(), res.payload());
     }
 }

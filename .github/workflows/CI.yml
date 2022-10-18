@@ -1,0 +1,91 @@
+name: CI
+
+on: [push, pull_request]
+
+env:
+  RUST_BACKTRACE: full
+
+jobs:
+  style:
+    name: Check Style
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt
+          profile: default
+          override: true
+
+      - name: Cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --manifest-path Cargo.toml --all -- --check
+
+  clippy_check:
+    name: Clippy check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: rustup component add clippy
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --manifest-path Cargo.toml --all-targets --all-features -- -D warnings
+
+  build:
+    name: ${{ matrix.name }}
+    needs: [style]
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        name:
+          - linux / stable
+          - linux / beta
+
+        include:
+          - name: linux / stable
+            os: ubuntu-latest
+            rust: stable
+          - name: linux / beta
+            os: ubuntu-latest
+            rust: beta
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          profile: default
+          override: true
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --manifest-path Cargo.toml
+
+      - name: Bench
+        uses: actions-rs/cargo@v1
+        with:
+          command: bench
+          args: --manifest-path Cargo.toml
+
+
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all
