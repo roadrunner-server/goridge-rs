@@ -63,10 +63,10 @@ impl Frame {
             _ => {
                 let mut hdr = [0_u8; 52];
                 hdr.clone_from_slice(&data[..(opt * WORD) as usize]);
-                return Self {
+                Self {
                     header: hdr,
                     payload: data[52..].to_vec(),
-                };
+                }
             }
         }
     }
@@ -122,7 +122,7 @@ impl Frame {
     }
 
     pub fn write_options(&mut self, options: &[u32]) {
-        if options.len() == 0 {
+        if options.is_empty() {
             panic!("no options provided");
         }
 
@@ -153,7 +153,7 @@ impl Frame {
     }
 
     pub fn payload(&self) -> &Vec<u8> {
-        return &self.payload;
+        &self.payload
     }
 
     pub fn verify_crc(&self) -> Result<(), Error> {

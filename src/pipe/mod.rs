@@ -83,7 +83,7 @@ impl Relay<Frame> for Pipes {
 }
 
 impl Pipes {
-    fn new(cmd: &[&str]) -> Result<Self, std::io::Error> {
+    pub fn new(cmd: &[&str]) -> Result<Self, std::io::Error> {
         let command = Command::new(cmd[0])
             .args(cmd)
             .stdin(Stdio::piped())
@@ -100,11 +100,11 @@ impl Pipes {
 }
 
 mod tests {
-    use crate::pipe::Pipes;
-    use crate::relay::Relay;
-
     #[test]
     fn test1() {
+        use crate::pipe::Pipes;
+        use crate::relay::Relay;
+
         let mut p = Pipes::new(&["php", "/home/valery/projects/opensource/github/rustatian/roadrunner-rs/crates/goridge/tests/worker.php"]).unwrap();
         let data = p.receive_stderr().unwrap();
         println!("{:?}", std::str::from_utf8(&data));
