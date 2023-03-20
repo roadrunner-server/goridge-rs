@@ -12,7 +12,7 @@ pub struct Pipes {
 }
 
 impl Pipes {
-    async fn send(&mut self, frame: &mut Frame) -> Result<(), Error> {
+    pub async fn send(&mut self, frame: &mut Frame) -> Result<(), Error> {
         let stdin = self.child.stdin.as_mut();
 
         match stdin {
@@ -26,7 +26,7 @@ impl Pipes {
         }
     }
 
-    async fn receive_stderr(&mut self) -> Result<Vec<u8>, Error> {
+    pub async fn receive_stderr(&mut self) -> Result<Vec<u8>, Error> {
         let stderr = self.child.stderr.as_mut();
         match stderr {
             // no data
@@ -40,7 +40,7 @@ impl Pipes {
         }
     }
 
-    async fn receive_stdout(&mut self) -> Result<Frame, Error> {
+    pub async fn receive_stdout(&mut self) -> Result<Frame, Error> {
         let stdout = self.child.stdout.as_mut();
         match stdout {
             None => Err(PipeError {
@@ -97,7 +97,7 @@ impl Pipes {
         }
     }
 
-    async fn kill(&mut self) -> Result<(), Error> {
+    pub async fn kill(&mut self) -> Result<(), Error> {
         self.child.kill().await?;
         Ok(())
     }
@@ -118,10 +118,9 @@ impl Pipes {
 }
 
 mod tests {
-    use crate::frame::Frame;
-
     #[tokio::test]
     async fn test1() {
+        use crate::frame::Frame;
         use crate::pipe::Pipes;
 
         let mut p = Pipes::new(&["php", "tests/worker.php"]).unwrap();
