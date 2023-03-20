@@ -1,7 +1,7 @@
 pub(crate) mod frame_flags;
 
 use crate::errors::Error;
-use std::ops::{Shl};
+use std::ops::Shl;
 use std::vec;
 
 pub const WORD: u8 = 4;

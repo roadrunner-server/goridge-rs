@@ -12,7 +12,11 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::CRCVerificationError { cause } => {
-                write!(f, "validation failed on the message sent to STDOUT, cause {}", cause)
+                write!(
+                    f,
+                    "validation failed on the message sent to STDOUT, cause {}",
+                    cause
+                )
             }
             Error::HeaderLenError { cause } => write!(f, "incorrect len, cause: {}", cause),
             Error::PipeError { cause } => write!(f, "pipe send error, cause: {}", cause),
