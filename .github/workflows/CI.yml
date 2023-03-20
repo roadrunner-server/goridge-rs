@@ -61,6 +61,9 @@ jobs:
             rust: beta
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Get Composer Cache Directory
         id: composer-cache
         run: echo "::set-output name=dir::$(composer config cache-files-dir)"
@@ -74,9 +77,6 @@ jobs:
 
       - name: Install Composer dependencies
         run: cd tests && composer update --prefer-dist --no-progress --ansi
-
-      - name: Checkout
-        uses: actions/checkout@v3
 
       - name: Install rust
         uses: actions-rs/toolchain@v1
