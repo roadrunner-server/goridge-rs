@@ -1,22 +1,23 @@
-mod frame_flags;
+pub(crate) mod frame_flags;
 
 use crate::errors::Error;
-use std::ops::BitAnd;
+use std::ops::{BitAnd, Shl, Shr};
+use std::vec;
 
-const WORD: u8 = 4;
-const FRAME_OPTIONS_MAX_SIZE: u8 = 40;
+pub const WORD: u8 = 4;
+pub const FRAME_OPTIONS_MAX_SIZE: u8 = 40;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub struct Frame {
     // 52 is maximum header len [0-51] or [0-52)
-    header: [u8; 52],
+    header: Vec<u8>,
     payload: Vec<u8>,
 }
 
 impl Default for Frame {
     fn default() -> Self {
         let mut f = Frame {
-            header: [0_u8; 52],
+            header: vec![0; 12],
             payload: vec![],
         };
         f.default_hl();
@@ -36,23 +37,34 @@ impl Frame {
     }
 
     #[inline(always)]
-    pub fn header(&mut self) -> [u8; 52] {
-        self.header
+    pub fn header_mut(&mut self) -> &mut Vec<u8> {
+        &mut self.header
+    }
+
+    #[inline(always)]
+    pub fn header(&self) -> &Vec<u8> {
+        &self.header
+    }
+
+    pub fn init_payload_mut(&mut self, size: usize) -> &mut Vec<u8> {
+        self.payload = vec![0; size];
+        &mut self.payload
+    }
+
+    pub fn extend_header(&mut self, data: &[u8]) {
+        self.header.extend_from_slice(data);
     }
 
     pub fn read_frame(&self, data: &[u8]) -> Self {
         // get options bits
-        let opt = data[0].bitand(0x0F);
+        let opt = data[0] & 0x0F;
 
         match opt {
             // 3 is minimum
             1..=3 => {
-                let mut hdr = [0_u8; 52];
-                hdr.clone_from_slice(&data[..52]);
-
                 let mut frame = Frame {
-                    header: hdr,
-                    payload: data[52..].to_vec(),
+                    header: data[..12].to_vec(),
+                    payload: data[12..].to_vec(),
                 };
 
                 frame.header[10] = 0;
@@ -60,14 +72,11 @@ impl Frame {
 
                 frame
             }
-            _ => {
-                let mut hdr = [0_u8; 52];
-                hdr.clone_from_slice(&data[..(opt * WORD) as usize]);
-                Self {
-                    header: hdr,
-                    payload: data[52..].to_vec(),
-                }
-            }
+
+            _ => Self {
+                header: data[..(opt * WORD) as usize].to_vec(),
+                payload: data[(opt * WORD) as usize..].to_vec(),
+            },
         }
     }
 
@@ -93,10 +102,11 @@ impl Frame {
     #[inline]
     fn increment_hl(&mut self) {
         let hl = self.read_hl();
-        if hl > 15 {
+        if hl == 15 {
             panic!("header len can't be more than 15 (4bits)");
         }
-        self.header[0] |= hl + 1
+
+        self.header[0] = (self.header[0] | hl) + 1
     }
 
     #[inline]
@@ -136,11 +146,22 @@ impl Frame {
             panic!("header len could not be more than 14 [0..15)");
         }
 
-        let _tmp = &[0_u8; FRAME_OPTIONS_MAX_SIZE as usize];
+        for (i, &option) in options.iter().enumerate() {
+            let j = 12 + i * WORD as usize;
 
-        for i in options {
-            let _b = i.to_be_bytes();
-            self.increment_hl();
+            self.header.push(0);
+            self.header[j] |= option as u8;
+
+            self.header.push(0);
+            self.header[j + 1] |= (option >> 8) as u8;
+
+            self.header.push(0);
+            self.header[j + 2] |= (option >> 16) as u8;
+
+            self.header.push(0);
+            self.header[j + 3] |= (option >> 24) as u8;
+
+            self.increment_hl(); // increment header len by 32 bit
         }
     }
 
@@ -166,7 +187,9 @@ impl Frame {
             return Ok(());
         }
 
-        Err(Error::CRCVerificationError)
+        Err(Error::CRCVerificationError {
+            cause: "".to_string(),
+        })
     }
 
     pub fn bytes(&mut self) -> Vec<u8> {
@@ -174,6 +197,15 @@ impl Frame {
         v.extend_from_slice(&self.header);
         v.extend_from_slice(&self.payload);
         v
+    }
+
+    pub fn read_payload_len(&self) -> u32 {
+        assert!(self.header.len() > 5);
+
+        (self.header[2] as u32)
+            | (self.header[3] as u32).shl(8)
+            | (self.header[4] as u32).shl(16)
+            | (self.header[5] as u32).shl(24)
     }
 }
 

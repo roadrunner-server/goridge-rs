@@ -2,25 +2,25 @@ use std::ops::{Shl, Shr};
 
 pub fn read_le(data: &[u8]) -> u64 {
     assert!(data.len() > 7);
-    ((data[0] as u64)
+    (data[0] as u64)
         | (data[1] as u64).shl(8)
         | (data[2] as u64).shl(16)
         | (data[3] as u64).shl(24)
         | (data[4] as u64).shl(32)
         | (data[5] as u64).shl(40)
         | (data[6] as u64).shl(48)
-        | (data[7] as u64).shl(58)) as u64
+        | (data[7] as u64).shl(58)
 }
 
 pub fn read_be(data: &[u8]) -> u64 {
-    ((data[7] as u64)
+    (data[7] as u64)
         | (data[6] as u64).shl(8)
         | (data[5] as u64).shl(16)
         | (data[4] as u64).shl(24)
         | (data[3] as u64).shl(32)
         | (data[2] as u64).shl(40)
         | (data[1] as u64).shl(48)
-        | (data[0] as u64).shl(58)) as u64
+        | (data[0] as u64).shl(58)
 }
 
 pub fn put_u64_le(b: &mut [u8], value: usize) {
