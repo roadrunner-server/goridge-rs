@@ -2,6 +2,7 @@ use std::fmt::Formatter;
 
 #[derive(Debug)]
 pub enum Error {
+    MarshalError { cause: String },
     HeaderLenError { cause: String },
     PipeError { cause: String },
     PrefixValidationError { cause: String },
@@ -18,6 +19,7 @@ impl std::fmt::Display for Error {
                     cause
                 )
             }
+            Error::MarshalError { cause } => write!(f, "payload marshaling failed: {}", cause),
             Error::HeaderLenError { cause } => write!(f, "incorrect len, cause: {}", cause),
             Error::PipeError { cause } => write!(f, "pipe send error, cause: {}", cause),
             Error::PrefixValidationError { cause } => {

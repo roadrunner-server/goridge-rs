@@ -1,6 +1,10 @@
+mod commands;
+
 use crate::errors::Error;
 use crate::errors::Error::{CRCVerificationError, PipeError};
+use crate::frame::frame_flags::Flag::{CodecJSON, Control};
 use crate::frame::{Frame, WORD};
+use crate::pipe::commands::PidCommand;
 use std::process::Stdio;
 use std::str::from_utf8;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
@@ -9,6 +13,10 @@ use tokio::time::{timeout, Duration};
 
 pub struct Pipes {
     child: Child,
+}
+
+pub trait Marshaller {
+    fn marshal(&mut self) -> Result<Vec<u8>, Error>;
 }
 
 impl Pipes {
@@ -97,6 +105,52 @@ impl Pipes {
         }
     }
 
+    pub async fn send_control<T: Marshaller>(&mut self, mut payload: T) -> Result<(), Error> {
+        let mut frame = Frame::default();
+
+        frame.write_version(1);
+        frame.write_flags(&[Control, CodecJSON]);
+
+        let data = payload.marshal()?;
+
+        frame.write_payload(data);
+        frame.write_crc();
+
+        if let Some(socket_new) = self.child.stdin.as_mut() {
+            let data = frame.bytes();
+            socket_new.write_all(&data).await?;
+            return Ok(());
+        }
+
+        Err(PipeError {
+            cause: String::from("get None child stdin out from the option"),
+        })
+    }
+
+    pub async fn pid(&mut self) -> Result<u32, Error> {
+        self.send_control(PidCommand::default()).await?;
+
+        let f = self.receive_stdout().await?;
+
+        let flags = f.read_flags();
+        if flags & (Control as u8) == 0 {
+            return Err(PipeError {
+                cause: String::from("unexpected response, header is missing, no CONTROL flag"),
+            });
+        }
+
+        let payload = f.payload();
+        let res: PidCommand = serde_json::from_slice(payload).unwrap();
+
+        if res.pid == 0 {
+            return Err(PipeError {
+                cause: String::from("pid should be greater than 0"),
+            });
+        }
+
+        Ok(res.pid)
+    }
+
     pub async fn kill(&mut self) -> Result<(), Error> {
         self.child.kill().await?;
         Ok(())
@@ -143,6 +197,16 @@ mod tests {
                 assert_eq!(error.to_string(), "validation failed on the message sent to STDOUT, cause warning: some weird php error, THIS IS PHP, I'm THE KING :) \u{14}\0\u{5}\0\0\0\u{1c}\u{11}[\u{1e}\0\0\0\0\0\0hello");
                 println!("{:?}", error.to_string());
             }
+        }
+    }
+
+    #[tokio::test]
+    async fn test2() {
+        use crate::pipe::Pipes;
+
+        let mut p = Pipes::new(&["php", "tests/worker.php"]).unwrap();
+        if let Ok(pid) = p.pid().await {
+            println!("{}", pid);
         }
     }
 }

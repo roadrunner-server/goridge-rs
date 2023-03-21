@@ -12,7 +12,7 @@ use Spiral\RoadRunner;
 $relay = new Goridge\StreamRelay(STDIN, STDOUT);
 $rr = new RoadRunner\Worker($relay);
 
-fwrite(STDOUT, "warning: some weird php error, THIS IS PHP, I'm THE KING :) ");
+// fwrite(STDOUT, "warning: some weird php error, THIS IS PHP, I'm THE KING :) ");
 
 while ($in = $rr->waitPayload()) {
     try {
