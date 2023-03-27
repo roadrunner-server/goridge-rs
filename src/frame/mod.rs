@@ -1,11 +1,13 @@
-pub(crate) mod frame_flags;
-
-use crate::errors::Error;
 use std::ops::Shl;
 use std::vec;
 
+use crate::errors::Error;
+
+pub mod frame_flags;
+
 pub const WORD: u8 = 4;
 pub const FRAME_OPTIONS_MAX_SIZE: u8 = 40;
+const LAST_BYTE: u8 = 12;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub struct Frame {
@@ -165,6 +167,152 @@ impl Frame {
         }
     }
 
+    pub fn read_options(&mut self) -> Option<Vec<u32>> {
+        let ol = self.read_hl(); // options lens
+
+        // don't have any options
+        if ol <= 3 {
+            return None;
+        }
+
+        // actual option len
+        let option_len = ol - 3;
+
+        if option_len * WORD > FRAME_OPTIONS_MAX_SIZE {
+            panic!("options size is limited by 40 bytes (10 4-bytes words)")
+        }
+
+        let mut options = vec![0; option_len as usize];
+
+        // 1
+        let mut i = 0;
+        let mut j = 0;
+
+        options[j] |= self.header[(LAST_BYTE + i) as usize] as u32;
+        options[j] |= (self.header[(LAST_BYTE + i + 1) as usize] as u32) << 8;
+        options[j] |= (self.header[(LAST_BYTE + i + 2) as usize] as u32) << 16;
+        options[j] |= (self.header[(LAST_BYTE + i + 3) as usize] as u32) << 24;
+
+        i += WORD;
+        j += 1;
+
+        if i == option_len * WORD {
+            return Some(options);
+        }
+
+        // 2
+        options[j] |= self.header[(LAST_BYTE + i) as usize] as u32;
+        options[j] |= (self.header[(LAST_BYTE + i + 1) as usize] as u32) << 8;
+        options[j] |= (self.header[(LAST_BYTE + i + 2) as usize] as u32) << 16;
+        options[j] |= (self.header[(LAST_BYTE + i + 3) as usize] as u32) << 24;
+
+        i += WORD;
+        j += 1;
+
+        if i == option_len * WORD {
+            return Some(options);
+        }
+
+        // 3
+        options[j] |= self.header[(LAST_BYTE + i) as usize] as u32;
+        options[j] |= (self.header[(LAST_BYTE + i + 1) as usize] as u32) << 8;
+        options[j] |= (self.header[(LAST_BYTE + i + 2) as usize] as u32) << 16;
+        options[j] |= (self.header[(LAST_BYTE + i + 3) as usize] as u32) << 24;
+
+        i += WORD;
+        j += 1;
+
+        if i == option_len * WORD {
+            return Some(options);
+        }
+
+        // 4
+        options[j] |= self.header[(LAST_BYTE + i) as usize] as u32;
+        options[j] |= (self.header[(LAST_BYTE + i + 1) as usize] as u32) << 8;
+        options[j] |= (self.header[(LAST_BYTE + i + 2) as usize] as u32) << 16;
+        options[j] |= (self.header[(LAST_BYTE + i + 3) as usize] as u32) << 24;
+
+        i += WORD;
+        j += 1;
+
+        if i == option_len * WORD {
+            return Some(options);
+        }
+
+        // 5
+        options[j] |= self.header[(LAST_BYTE + i) as usize] as u32;
+        options[j] |= (self.header[(LAST_BYTE + i + 1) as usize] as u32) << 8;
+        options[j] |= (self.header[(LAST_BYTE + i + 2) as usize] as u32) << 16;
+        options[j] |= (self.header[(LAST_BYTE + i + 3) as usize] as u32) << 24;
+
+        i += WORD;
+        j += 1;
+
+        if i == option_len * WORD {
+            return Some(options);
+        }
+
+        // 6
+        options[j] |= self.header[(LAST_BYTE + i) as usize] as u32;
+        options[j] |= (self.header[(LAST_BYTE + i + 1) as usize] as u32) << 8;
+        options[j] |= (self.header[(LAST_BYTE + i + 2) as usize] as u32) << 16;
+        options[j] |= (self.header[(LAST_BYTE + i + 3) as usize] as u32) << 24;
+
+        i += WORD;
+        j += 1;
+
+        if i == option_len * WORD {
+            return Some(options);
+        }
+
+        // 7
+        options[j] |= self.header[(LAST_BYTE + i) as usize] as u32;
+        options[j] |= (self.header[(LAST_BYTE + i + 1) as usize] as u32) << 8;
+        options[j] |= (self.header[(LAST_BYTE + i + 2) as usize] as u32) << 16;
+        options[j] |= (self.header[(LAST_BYTE + i + 3) as usize] as u32) << 24;
+
+        i += WORD;
+        j += 1;
+
+        if i == option_len * WORD {
+            return Some(options);
+        }
+
+        // 8
+        options[j] |= self.header[(LAST_BYTE + i) as usize] as u32;
+        options[j] |= (self.header[(LAST_BYTE + i + 1) as usize] as u32) << 8;
+        options[j] |= (self.header[(LAST_BYTE + i + 2) as usize] as u32) << 16;
+        options[j] |= (self.header[(LAST_BYTE + i + 3) as usize] as u32) << 24;
+
+        i += WORD;
+        j += 1;
+
+        if i == option_len * WORD {
+            return Some(options);
+        }
+
+        // 9
+        options[j] |= self.header[(LAST_BYTE + i) as usize] as u32;
+        options[j] |= (self.header[(LAST_BYTE + i + 1) as usize] as u32) << 8;
+        options[j] |= (self.header[(LAST_BYTE + i + 2) as usize] as u32) << 16;
+        options[j] |= (self.header[(LAST_BYTE + i + 3) as usize] as u32) << 24;
+
+        i += WORD;
+        j += 1;
+
+        if i == option_len * WORD {
+            return Some(options);
+        }
+
+        // 10
+        options[j] |= self.header[(LAST_BYTE + i) as usize] as u32;
+        options[j] |= (self.header[(LAST_BYTE + i + 1) as usize] as u32) << 8;
+        options[j] |= (self.header[(LAST_BYTE + i + 2) as usize] as u32) << 16;
+        options[j] |= (self.header[(LAST_BYTE + i + 3) as usize] as u32) << 24;
+
+        Some(options)
+    }
+
     pub fn write_crc(&mut self) {
         let res = crc32fast::hash(&self.header[..6]);
         self.header[6] = res as u8;
@@ -288,8 +436,32 @@ mod tests {
 
         let res = Frame::default().read_frame(&bytes);
         if let Ok(()) = res.verify_crc() {
-            panic!("should be error")
+            panic!("CRC verification was failed")
         }
+        assert_eq!(ff.version(), res.version());
+        assert_eq!(ff.payload(), res.payload());
+    }
+
+    #[test]
+    fn test4() {
+        let mut ff = Frame::default();
+        ff.write_version(1);
+        ff.write_flags(&[Flag::Control, Flag::CodecRaw]);
+        ff.write_payload(vec![b'h', b'e', b'l', b'l', b'o']);
+        ff.write_options(&[1011, 1122, 1233, 1315, 1415, 1555, 1615, 1715, 1815]);
+        ff.write_crc();
+
+        let bytes = ff.bytes();
+        let mut res = Frame::default().read_frame(&bytes);
+
+        if res.verify_crc().is_err() {
+            panic!("CRC verification was failed")
+        }
+
+        assert_eq!(
+            res.read_options().unwrap(),
+            vec![1011, 1122, 1233, 1315, 1415, 1555, 1615, 1715, 1815]
+        );
         assert_eq!(ff.version(), res.version());
         assert_eq!(ff.payload(), res.payload());
     }

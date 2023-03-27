@@ -12,7 +12,7 @@ use tokio::process::{Child, Command};
 use tokio::time::{timeout, Duration};
 
 pub struct Pipes {
-    child: Child,
+    pub child: Child,
 }
 
 pub trait Marshaller {
@@ -206,7 +206,7 @@ mod tests {
 
         let mut p = Pipes::new(&["php", "tests/worker.php"]).unwrap();
         if let Ok(pid) = p.pid().await {
-            println!("{}", pid);
+            assert!(pid > 0);
         }
     }
 }
