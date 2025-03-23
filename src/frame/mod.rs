@@ -383,8 +383,8 @@ impl From<Frame> for Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-    use crate::frame::frame_flags::Flag;
     use crate::frame::Frame;
+    use crate::frame::frame_flags::Flag;
 
     #[test]
     fn test1() {

@@ -8,7 +8,7 @@ use std::process::Stdio;
 use std::str::from_utf8;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
-use tokio::time::{timeout, Duration};
+use tokio::time::{Duration, timeout};
 
 pub struct Pipes {
     pub child: Child,

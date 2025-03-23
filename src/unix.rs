@@ -1,7 +1,7 @@
 use std::fs::File;
+use std::io;
 use std::mem::ManuallyDrop;
 use std::os::fd::{AsRawFd, FromRawFd};
-use std::io;
 
 #[cfg(not(any(target_os = "ios", target_os = "macos")))]
 fn pipe2_cloexec() -> io::Result<(c_int, c_int)> {

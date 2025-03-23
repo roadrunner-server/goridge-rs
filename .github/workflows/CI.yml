@@ -1,6 +1,6 @@
 name: CI
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 env:
   RUST_BACKTRACE: full
@@ -14,20 +14,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt
-          profile: default
-          override: true
-
-      - name: Cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --manifest-path Cargo.toml --all -- --check
+      - run: rustup update
+      - run: cargo build --release
+      - run: cargo fmt --manifest-path Cargo.toml --all -- --check
 
   clippy_check:
     name: Clippy check
@@ -35,14 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: rustup component add clippy
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --manifest-path Cargo.toml --all-targets --all-features -- -D warnings
+      - run: cargo clippy --manifest-path Cargo.toml --all-targets --all-features -- -D warnings
 
   build:
     name: ${{ matrix.name }}
-    needs: [style]
+    needs: [ style ]
 
     runs-on: ${{ matrix.os }}
 
@@ -78,21 +64,8 @@ jobs:
       - name: Install Composer dependencies
         run: cd tests && composer update --prefer-dist --no-progress --ansi
 
-      - name: Install rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
-          profile: default
-          override: true
+      - name: Test Rust
+        run: cargo test --all
 
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --manifest-path Cargo.toml
-
-      - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all
+        run: cargo build
