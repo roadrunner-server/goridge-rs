@@ -328,7 +328,8 @@ impl Frame {
     pub fn verify_crc(&self) -> Result<(), Error> {
         let crc = crc32fast::hash(&self.header[..6]);
         if crc
-            == ((self.header[6] as u32) | (self.header[7] as u32) << 8)
+            == (self.header[6] as u32)
+                | ((self.header[7] as u32) << 8)
                 | ((self.header[8] as u32) << 16)
                 | ((self.header[9] as u32) << 24)
         {
@@ -383,8 +384,8 @@ impl From<Frame> for Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-    use crate::frame::Frame;
     use crate::frame::frame_flags::Flag;
+    use crate::frame::Frame;
 
     #[test]
     fn test1() {
