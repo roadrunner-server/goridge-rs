@@ -1,3 +1,8 @@
+#[cfg(not(any(target_os = "ios", target_os = "macos")))]
+use libc::c_int;
+#[cfg(not(any(target_os = "ios", target_os = "macos")))]
+use std::mem;
+
 use std::fs::File;
 use std::io;
 use std::mem::ManuallyDrop;
