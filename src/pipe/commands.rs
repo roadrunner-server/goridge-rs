@@ -1,4 +1,3 @@
-use crate::errors::Error;
 use crate::pipe::Marshaller;
 use serde::{Deserialize, Serialize};
 
@@ -16,12 +15,10 @@ impl Default for PidCommand {
 }
 
 impl Marshaller for PidCommand {
-    fn marshal(&mut self) -> Result<Vec<u8>, Error> {
+    fn marshal(&mut self) -> anyhow::Result<Vec<u8>> {
         match serde_json::to_vec(self) {
             Ok(data) => Ok(data),
-            Err(error) => Err(Error::PipeError {
-                cause: error.to_string(),
-            }),
+            Err(error) => Err(anyhow::Error::msg(error.to_string())),
         }
     }
 }
@@ -32,13 +29,11 @@ struct StopCommand {
 }
 
 impl Marshaller for StopCommand {
-    fn marshal(&mut self) -> Result<Vec<u8>, Error> {
+    fn marshal(&mut self) -> anyhow::Result<Vec<u8>> {
         self.stop = true;
         match serde_json::to_vec(self) {
             Ok(data) => Ok(data),
-            Err(error) => Err(Error::PipeError {
-                cause: error.to_string(),
-            }),
+            Err(error) => Err(anyhow::Error::msg(error.to_string())),
         }
     }
 }

@@ -54,7 +54,7 @@ impl Frame {
     }
 
     pub fn extend_header(&mut self, data: &[u8]) {
-        self.header.extend_from_slice(data);
+        self.header.extend(data.iter());
     }
 
     pub fn read_frame(&self, data: &[u8]) -> Self {
@@ -123,14 +123,14 @@ impl Frame {
         }
     }
 
-    pub fn write_payload(&mut self, payload: Vec<u8>) {
+    pub fn write_payload(&mut self, payload: &Vec<u8>) {
         let pl = payload.len();
         self.header[2] = pl as u8;
         self.header[3] = (pl >> 8) as u8;
         self.header[4] = (pl >> 16) as u8;
         self.header[5] = (pl >> 24) as u8;
 
-        self.payload.extend_from_slice(&payload);
+        self.payload.extend_from_slice(payload);
     }
 
     pub fn write_options(&mut self, options: &[u32]) {
@@ -328,7 +328,7 @@ impl Frame {
     pub fn verify_crc(&self) -> Result<(), Error> {
         let crc = crc32fast::hash(&self.header[..6]);
         if crc
-            == ((self.header[6] as u32) | ((self.header[7]) as u32) << 8)
+            == ((self.header[6] as u32) | (self.header[7] as u32) << 8)
                 | ((self.header[8] as u32) << 16)
                 | ((self.header[9] as u32) << 24)
         {
@@ -393,7 +393,7 @@ mod tests {
         let mut ff = Frame::default();
         ff.write_version(1);
         ff.write_flags(&[Flag::Control, Flag::CodecRaw]);
-        ff.write_payload(test_payload.into());
+        ff.write_payload(&test_payload.as_bytes().to_vec());
         ff.write_crc();
 
         let bytes = ff.bytes();
@@ -413,7 +413,7 @@ mod tests {
         let mut ff = Frame::default();
         ff.write_version(1);
         ff.write_flags(&[Flag::Control, Flag::CodecRaw]);
-        ff.write_payload(test_payload.into());
+        ff.write_payload(&test_payload.as_bytes().to_vec());
         ff.write_crc();
 
         let bytes = ff.bytes();
@@ -447,7 +447,7 @@ mod tests {
         let mut ff = Frame::default();
         ff.write_version(1);
         ff.write_flags(&[Flag::Control, Flag::CodecRaw]);
-        ff.write_payload(vec![b'h', b'e', b'l', b'l', b'o']);
+        ff.write_payload(&vec![b'h', b'e', b'l', b'l', b'o']);
         ff.write_options(&[1011, 1122, 1233, 1315, 1415, 1555, 1615, 1715, 1815]);
         ff.write_crc();
 
