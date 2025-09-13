@@ -1,5 +1,4 @@
-pub mod bit_operations;
-pub mod errors;
-pub mod frame;
+mod bit_operations;
+mod errors;
+mod frame;
 pub mod pipe;
-mod unix;

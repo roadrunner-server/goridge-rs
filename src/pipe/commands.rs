@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::pipe::Marshaller;
 use serde::{Deserialize, Serialize};
 

@@ -11,7 +11,7 @@ use tokio::process::{Child, Command};
 use tokio::time::{Duration, timeout};
 
 pub struct Pipes {
-    pub child: Child,
+    child: Child,
 }
 
 pub trait Marshaller {
@@ -146,6 +146,18 @@ impl Pipes {
 
     pub async fn kill(&mut self) -> anyhow::Result<()> {
         self.child.kill().await?;
+        Ok(())
+    }
+
+    pub async fn try_wait(&mut self) -> anyhow::Result<Option<std::process::ExitStatus>> {
+        match self.child.try_wait()? {
+            Some(status) => Ok(Some(status)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn wait(&mut self) -> anyhow::Result<()> {
+        self.child.wait().await?;
         Ok(())
     }
 }
