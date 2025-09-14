@@ -1,8 +1,6 @@
 use std::ops::Shl;
 use std::vec;
 
-use crate::errors::Error;
-
 pub mod frame_flags;
 
 pub const WORD: u8 = 4;
@@ -325,20 +323,19 @@ impl Frame {
         &self.payload
     }
 
-    pub fn verify_crc(&self) -> Result<(), Error> {
-        let crc = crc32fast::hash(&self.header[..6]);
-        if crc
-            == (self.header[6] as u32)
-                | ((self.header[7] as u32) << 8)
-                | ((self.header[8] as u32) << 16)
-                | ((self.header[9] as u32) << 24)
-        {
-            return Ok(());
+    pub fn verify_crc(&self) -> anyhow::Result<()> {
+        let crc: u32 = crc32fast::hash(&self.header[..6]);
+        let res = (self.header[6] as u32)
+            | ((self.header[7] as u32) << 8)
+            | ((self.header[8] as u32) << 16)
+            | ((self.header[9] as u32) << 24);
+        match crc == res {
+            true => Ok(()),
+            false => anyhow::bail!(format!(
+                "CRC verification failed: expected {}, got {}",
+                crc, res
+            )),
         }
-
-        Err(Error::CRCVerification {
-            cause: "".to_string(),
-        })
     }
 
     pub fn bytes(&mut self) -> Vec<u8> {

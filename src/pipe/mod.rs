@@ -7,7 +7,7 @@ use anyhow::anyhow;
 use std::process::Stdio;
 use std::str::from_utf8;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
-use tokio::process::{Child, Command};
+use tokio::process::{Child, ChildStderr, Command};
 use tokio::time::{Duration, timeout};
 
 pub struct Pipes {
@@ -31,8 +31,16 @@ impl Pipes {
         }
     }
 
+    pub fn stderr(&mut self) -> Option<&mut ChildStderr> {
+        self.child.stderr.as_mut()
+    }
+
+    pub fn take_stderr(&mut self) -> Option<ChildStderr> {
+        self.child.stderr.take()
+    }
+
     pub async fn receive_stderr(&mut self) -> anyhow::Result<Vec<u8>> {
-        let stderr = self.child.stderr.as_mut();
+        let stderr: Option<&mut ChildStderr> = self.child.stderr.as_mut();
         match stderr {
             // no data
             None => Err(anyhow!("no data, process is possibly dead")),
@@ -122,7 +130,7 @@ impl Pipes {
         Err(anyhow!("get None child stdin out from the option"))
     }
 
-    pub async fn pid(&mut self) -> anyhow::Result<u32> {
+    pub async fn send_pid(&mut self) -> anyhow::Result<u32> {
         self.send_control(PidCommand::default()).await?;
 
         let f = self.receive_stdout().await?;
@@ -142,6 +150,14 @@ impl Pipes {
         }
 
         Ok(res.pid)
+    }
+
+    pub async fn id(&mut self) -> anyhow::Result<u32> {
+        if let Some(id) = self.child.id() {
+            return Ok(id);
+        }
+
+        Err(anyhow!("get None child id out from the option"))
     }
 
     pub async fn kill(&mut self) -> anyhow::Result<()> {
