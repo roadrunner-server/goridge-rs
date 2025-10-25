@@ -5,7 +5,7 @@
     "monolog/monolog": "^3.1",
     "guzzlehttp/guzzle": "^6.5",
     "nyholm/psr7": "^1.5",
-    "spiral/roadrunner": "^2.0",
+    "spiral/roadrunner": "^2025.1",
     "spiral/roadrunner-http": "^2.1",
     "spiral/roadrunner-worker": "^2.2",
     "spiral/goridge": "^3.2"
