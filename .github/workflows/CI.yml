@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - run: rustup update
       - run: cargo build --release
       - run: cargo fmt --manifest-path Cargo.toml --all -- --check
@@ -22,7 +22,7 @@ jobs:
     name: Clippy check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: rustup component add clippy
       - run: cargo clippy --manifest-path Cargo.toml --all-targets --all-features -- -D warnings
 
@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
